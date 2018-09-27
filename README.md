@@ -11,15 +11,15 @@ Usage [![Go Walker](http://img.shields.io/badge/docs-API-brightgreen.svg?style=f
 Firstly import package and create broadcast group. You may create any number of groups for different broadcasts:
 
 			import (
-				"github.com/grafov/bcast"
+				"github.com/NimbleIndustry/bcast"
 			)
 
 			group := bcast.NewGroup() // create broadcast group
-			go group.Broadcast(0) // accepts messages and broadcast it to all members
+			go group.Broadcasting(0) // accepts messages and broadcast it to all members
 
 You may listen broadcasts limited time:
 
-			bcast.Broadcast(2 * time.Minute) // if message not arrived during 2 min. function exits
+			bcast.Broadcasting(2 * time.Minute) // if message not arrived during 2 min. function exits
 
 Now join to the group from different goroutines:
 
@@ -49,12 +49,9 @@ See more examples in a test suit `bcast_test.go`.
 Install
 -------
 
-`go get github.com/grafov/bcast`
+`go get github.com/NimbleIndustry/bcast`
 
-The library doesn't require external packages for build. The next
-package required if you want to run unit tests:
-
-`gopkg.in/fatih/set.v0`
+No external dependencies beside standard packages.
 
 License
 -------
@@ -63,7 +60,5 @@ Library licensed under BSD 3-clause license. See LICENSE.
 
 Project status [![Build Status](https://img.shields.io/travis/grafov/bcast/master.svg?style=flat)](https://travis-ci.org/grafov/bcast)
 --------------
-
-WIP again. There is bug found (see #12) and some possible improvements are waiting for review (#9).
 
 API is stable. No major changes planned, maybe small improvements.
