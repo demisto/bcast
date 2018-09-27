@@ -13,7 +13,6 @@ package bcast
 import (
 	"sync"
 	"time"
-	//"fmt"
 )
 
 // Internal structure to pack messages together with info about sender.
@@ -26,7 +25,6 @@ type Message struct {
 type Member struct {
 	group *Group           // send messages to others directly to group.In
 	In    chan interface{} // (public) get messages from others to own channel
-	//NonReceived int
 }
 
 // Represents broadcast group.
@@ -83,17 +81,17 @@ func (r *Group) Close() {
 	r.close <- true
 }
 
-// Obsoleted by BroadcastFor()
-func (r *Group) Broadcasting(timeout time.Duration) {
-	r.BroadcastFor(timeout)
-}
-
 // Broadcast messages received from one group member to others.
-// If incoming messages not arrived during `timeout` then function returns.
-func (r *Group) BroadcastFor(timeout time.Duration) {
-	if timeout == 0 {
+// If incoming messages not arrived during `totalTimeout` then function returns.
+// Will wait `messageTimeout` for message to be read by a group member
+func (r *Group) BroadcastFor(totalTimeout time.Duration, messageTimeout time.Duration) {
+	if totalTimeout <= 0 {
 		r.Broadcast()
 		return
+	}
+	// set default timeout of 1 hour
+	if messageTimeout <= 0 {
+		messageTimeout = time.Duration(time.Hour)
 	}
 	for {
 		select {
@@ -102,26 +100,19 @@ func (r *Group) BroadcastFor(timeout time.Duration) {
 			default: // receive a payload and broadcast it
 				for _, member := range r.Members() {
 					if received.sender != member { // not return broadcast to sender
-
-						/*
-							select {
-							case member <- received.payload:
-								fmt.Println("sent message", received.payload)
-							default:
-								fmt.Println("no message sent")
-							}
-						*/
 						go func(out chan interface{}, received *Message) { // non blocking
-							out <- received.payload
+							select {
+							case out <- received.payload:
+								return
+							case <-time.After(messageTimeout): // avoid ghost routines
+								return
+							}
 						}(member, &received)
-
 					}
 				}
 			}
-		case <-time.After(timeout):
-			if timeout > 0 {
-				return
-			}
+		case <-time.After(totalTimeout):
+			return
 		case <-r.close:
 			return
 		}
@@ -131,6 +122,7 @@ func (r *Group) BroadcastFor(timeout time.Duration) {
 // Broadcast messages received from one group member to others.
 // See https://github.com/grafov/bcast/issues/4 for rationale.
 func (r *Group) Broadcast() {
+	messageTimeout := time.Duration(time.Hour)
 	for {
 		select {
 		case <-r.close:
@@ -140,17 +132,13 @@ func (r *Group) Broadcast() {
 			default: // receive a payload and broadcast it
 				for _, member := range r.Members() {
 					if received.sender != member { // not return broadcast to sender
-
-						/*
-							select {
-							case member <- received.payload:
-								//fmt.Println("sent message", received.payload)
-							default:
-								//fmt.Println("no message sent")
-							}
-						*/
 						go func(out chan interface{}, received *Message) { // non blocking
-							out <- received.payload
+							select {
+							case out <- received.payload:
+								return
+							case <-time.After(messageTimeout): // avoid ghost routines
+								return
+							}
 						}(member, &received)
 					}
 				}
